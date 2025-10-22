@@ -6,9 +6,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ───── Basic Bot Configuration ───── #
-API_ID = int(getenv("API_ID", "25753873"))
-API_HASH = getenv("API_HASH", "3a5cdc2079cd76af80586102bd9761e2")
-BOT_TOKEN = getenv("BOT_TOKEN", "8459915952:AAF0DrxcoBmwuryGLiMPeloMFvVTnuiBbS0")
+API_ID = int(getenv("API_ID", ""))
+API_HASH = getenv("API_HASH", "")
+BOT_TOKEN = getenv("BOT_TOKEN", "")
 BOT_NAME = getenv("BOT_NAME", "Mila | AI Girlfriend (+18)")
 BOT_USERNAME = getenv("BOT_USERNAME", "@Milagirlfriendbot")
 OWNER_ID = int(getenv("OWNER_ID", "5962658076"))
@@ -19,7 +19,7 @@ OWNER_USERNAME = getenv("OWNER_USERNAME", "@Am_Itachiuchiha")
 PORT = int(getenv("PORT", "10000"))
 
 # ───── Mongo & Logging ───── #
-MONGO_DB_URI = getenv("MONGO_DB_URI", "mongodb+srv://anonymousguywas:12345Trials@cluster0.t4nmrtp.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+MONGO_DB_URI = getenv("MONGO_DB_URI", "")
 MONGO_DB_NAME = getenv("MONGO_DB_NAME", "MILAAI")
 LOGGER_ID = int(getenv("LOGGER_ID", "0"))
 
