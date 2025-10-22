@@ -1,10 +1,12 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message
+from pyrogram.enums import ChatAction
 from database import BotDatabase
 from core.ai_client import VeniceAI
 from utils.keyboard import build_main_menu
 from config import BOT_USERNAME
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +25,7 @@ async def chat_callback(client: Client, callback_query):
     
     # Keep the main menu buttons for the initial chat prompt
     await callback_query.message.edit_text(
-        f"💬 Alright, {first_name}, let’s have a little heart-to-heart! 😘 What’s on your mind?",
+        f"💬 Alright, {first_name}, let's have a little heart-to-heart! 😘 What's on your mind?",
         reply_markup=build_main_menu()
     )
 
@@ -44,7 +46,10 @@ async def chat_command(client: Client, message: Message):
     user_input = message.text.replace(f"@{BOT_USERNAME}", "").strip()
     history = db.get_conversation_history(user_id)
     
-    # Generate AI response
+    # Send typing action
+    await client.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
+    
+    # Generate AI response (this might take some time)
     response = ai_client.get_ai_response(history, user_input, first_name)
     
     # Save conversation
