@@ -2,9 +2,9 @@ import logging
 import threading
 import asyncio
 from pyrogram import Client
-from config import API_ID, API_HASH, BOT_TOKEN
+from config import API_ID, API_HASH, BOT_TOKEN, PORT
 from utils.keep_alive import start_keep_alive
-from handlers import admin_commands  # Explicitly import admin_commands
+from handlers import admin_commands
 
 # Setup logging
 logging.basicConfig(
@@ -19,13 +19,14 @@ app = Client(
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
-    plugins=dict(root="handlers")  # Load handlers from handlers/ only
+    plugins=dict(root="handlers")
 )
 
 async def main():
     logger.info("🚀 Starting MILA AI Bot...")
     try:
         # Start keep-alive (including health server) in a separate thread
+        logger.info(f"📡 Starting health server on port {PORT}")
         keep_alive_thread = threading.Thread(target=start_keep_alive, daemon=True)
         keep_alive_thread.start()
         
