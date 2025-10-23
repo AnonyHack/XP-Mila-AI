@@ -11,6 +11,7 @@ db = BotDatabase()
 
 # Single help page
 HELP_PAGE = """
+<blockquote>
 💕 Hey {first_name}, here's how to make our time together even sweeter! 😘<br><br>
 🤖 <b>{BOT_NAME} - Help</b><br><br>
 ✨ <b>Commands:</b><br>
@@ -24,6 +25,7 @@ HELP_PAGE = """
   4. Use /clear or the "Clear Our Chat" button to reset<br>
   5. Click "About Your Girl" for my secrets<br><br>
 💖 <b>Developer:</b> <a href="https://t.me/{owner_username}">{BOT_NAME}</a>
+</blockquote>
 """
 
 @Client.on_callback_query(filters.regex(r"help_page_1"))
@@ -58,4 +60,5 @@ async def help_callback(client: Client, callback_query):
             reply_markup=build_help_keyboard(1, 1),
             parse_mode=enums.ParseMode.HTML
         )
+
         await callback_query.answer()
