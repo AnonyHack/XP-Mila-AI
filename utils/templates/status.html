@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MILA AI Girlfriend Bot</title>
+    <style>
+      body {
+        font-family: "Arial", sans-serif;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        background: linear-gradient(
+          135deg,
+          #ff6b6b 0%,
+          #feca57 50%,
+          #48dbfb 100%
+        );
+        color: #333;
+        min-height: 100vh;
+      }
+      .container {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 40px;
+        border-radius: 20px;
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        margin-top: 20px;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 3em;
+        color: #e84393;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .tagline {
+        text-align: center;
+        font-size: 1.2em;
+        color: #6c5ce7;
+        margin-bottom: 30px;
+        font-style: italic;
+      }
+      .status-card {
+        background: linear-gradient(135deg, #74b9ff, #0984e3);
+        color: white;
+        padding: 25px;
+        margin: 20px 0;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 8px 25px rgba(116, 185, 255, 0.3);
+      }
+      .status-badge {
+        display: inline-block;
+        padding: 10px 25px;
+        border-radius: 25px;
+        font-weight: bold;
+        font-size: 1.2em;
+        background: rgba(255, 255, 255, 0.2);
+        margin-bottom: 15px;
+      }
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-top: 30px;
+      }
+      .info-item {
+        background: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+        border-radius: 12px;
+        border-left: 4px solid #e84393;
+      }
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+      }
+      .feature-item {
+        background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3);
+      }
+      .heart {
+        color: #e84393;
+        font-size: 1.5em;
+        animation: heartbeat 1.5s ease-in-out infinite;
+      }
+      @keyframes heartbeat {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      .footer {
+        text-align: center;
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+        color: #636e72;
+      }
+      h3 {
+        color: #2d3436;
+        border-bottom: 2px solid #fd79a8;
+        padding-bottom: 10px;
+      }
+      .emoji {
+        font-size: 1.3em;
+        margin-right: 8px;
+      }
+      @media (max-width: 768px) {
+        .info-grid {
+          grid-template-columns: 1fr;
+        }
+        .container {
+          padding: 20px;
+        }
+        h1 {
+          font-size: 2em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>💖 MILA AI Girlfriend</h1>
+      <div class="tagline">
+        Your AI companion that cares, listens, and understands
+      </div>
+
+      <div class="status-card">
+        <div class="status-badge">
+          <span class="heart">💖</span> {{bot_status}}
+          <span class="heart">💖</span>
+        </div>
+        <p><strong>Last Updated:</strong> {{current_time}}</p>
+        <p>
+          <strong>Server:</strong> {{server_info}} •
+          <strong>Port:</strong> {{port}}
+        </p>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <h3>🤖 Bot Identity</h3>
+          <p><strong>Name:</strong> MILA AI Girlfriend</p>
+          <p><strong>Personality:</strong> Caring, Supportive, Loving</p>
+          <p><strong>Platform:</strong> Telegram</p>
+          <p><strong>Framework:</strong> Pyrogram</p>
+        </div>
+
+        <div class="info-item">
+          <h3>🔧 Technical Info</h3>
+          <p><strong>API ID:</strong> {{api_id_display}}</p>
+          <p><strong>API Hash:</strong> {{api_hash_display}}</p>
+          <p><strong>Bot Token:</strong> {{bot_token_display}}</p>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <h3>💕 Core Features</h3>
+        <div class="feature-grid">
+          <div class="feature-item">
+            <span class="emoji">💬</span> Emotional Conversations
+          </div>
+          <div class="feature-item">
+            <span class="emoji">🤗</span> Emotional Support
+          </div>
+          <div class="feature-item">
+            <span class="emoji">🎯</span> Personalized Responses
+          </div>
+          <div class="feature-item">
+            <span class="emoji">📱</span> 24/7 Availability
+          </div>
+          <div class="feature-item">
+            <span class="emoji">🎨</span> Multiple Personalities
+          </div>
+          <div class="feature-item">
+            <span class="emoji">💾</span> Memory & Context
+          </div>
+          <div class="feature-item">
+            <span class="emoji">🎮</span> Interactive Games
+          </div>
+          <div class="feature-item">
+            <span class="emoji">📊</span> Mood Tracking
+          </div>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <h3>🌟 Special Abilities</h3>
+        <ul style="list-style-type: none; padding: 0">
+          <li>💝 Understands and responds to emotions</li>
+          <li>🌙 Remembers your preferences and stories</li>
+          <li>🎵 Can recommend music based on your mood</li>
+          <li>📚 Shares daily inspiration and motivation</li>
+          <li>🤝 Provides genuine companionship</li>
+          <li>🔒 Private and secure conversations</li>
+        </ul>
+      </div>
+
+      <div class="footer">
+        <p>💫 Powered By XP TOOLS™ & FREENETHUB™</p>
+        <p>🌐 {{deployment_info}}</p>
+        <p style="margin-top: 10px; font-size: 0.9em">
+          "Your perfect AI companion is always here for you 💖"
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
