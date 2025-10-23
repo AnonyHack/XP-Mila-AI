@@ -36,8 +36,8 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "text/html")
             self.end_headers()
             
-            # Determine if we're in production (Koyeb) or local
-            is_production = os.environ.get('RENDER_APP_NAME') is not None
+            # Determine if we're in production (Render) or local
+            is_production = os.environ.get('RENDER') is not None
             
             # Prepare template variables
             template_vars = {
@@ -74,37 +74,47 @@ class HealthHandler(BaseHTTPRequestHandler):
 def run_health_server():
     """Run a simple HTTP server to respond to health checks and display bot info."""
     try:
-        # Use localhost for development, 0.0.0.0 for production
-        host = '0.0.0.0' if os.environ.get('RENDER_APP_NAME') else 'localhost'
-        server = HTTPServer((host, PORT), HealthHandler)
+        # Use 0.0.0.0 for Render to bind to all interfaces
+        host = '0.0.0.0'
+        port = int(os.environ.get('PORT', PORT))
         
-        if os.environ.get('RENDER_APP_NAME'):
-            logger.info(f"🌐 Production health server started on port {PORT}")
-            logger.info(f"💖 MILA AI Girlfriend is live!")
-        else:
-            logger.info(f"🌐 Development health server started on port {PORT}")
-            logger.info(f"💖 MILA AI Girlfriend status: http://localhost:{PORT}/")
+        server = HTTPServer((host, port), HealthHandler)
+        
+        logger.info(f"🌐 Health server started on {host}:{port}")
+        logger.info(f"💖 MILA AI Girlfriend status page is live!")
+        logger.info(f"📡 Server binding to all interfaces on port {port}")
         
         server.serve_forever()
     except Exception as e:
         logger.error(f"Failed to start health server: {e}")
-        raise
+        # Don't raise the exception, just log it and let the bot continue
+        logger.info("Bot will continue without health server")
 
 def start_keep_alive():
     """Start the keep-alive system with health server and periodic pings."""
-    # Start health server in a separate thread
-    health_thread = threading.Thread(target=run_health_server, daemon=True)
-    health_thread.start()
-    logger.info("Health server thread started")
+    try:
+        # Start health server in a separate thread
+        health_thread = threading.Thread(target=run_health_server, daemon=True)
+        health_thread.start()
+        logger.info("Health server thread started successfully")
+        
+        # Give the server a moment to start
+        time.sleep(2)
+        
+    except Exception as e:
+        logger.error(f"Failed to start health server thread: {e}")
+        logger.info("Continuing without health server")
     
-    # Periodic pings to keep the server alive
-    session = requests.Session()
-    while True:
-        try:
-            # Ping the local health endpoint
-            host = 'localhost' if not os.environ.get('RENDER_APP_NAME') else '0.0.0.0'
-            response = session.get(f'http://{host}:{PORT}/ping', timeout=5)
-            logger.debug(f"Keep-alive ping successful: {response.status_code}")
-        except Exception as e:
-            logger.warning(f"Keep-alive ping failed: {e}")
-        time.sleep(300)  # Ping every 5 minutes
+    # Periodic pings to keep the server alive (only if we're not on Render)
+    # On Render, the web service itself keeps it alive
+    if not os.environ.get('RENDER'):
+        session = requests.Session()
+        while True:
+            try:
+                # Ping the local health endpoint
+                port = int(os.environ.get('PORT', PORT))
+                response = session.get(f'http://localhost:{port}/ping', timeout=5)
+                logger.debug(f"Keep-alive ping successful: {response.status_code}")
+            except Exception as e:
+                logger.warning(f"Keep-alive ping failed: {e}")
+            time.sleep(300)  # Ping every 5 minutes
