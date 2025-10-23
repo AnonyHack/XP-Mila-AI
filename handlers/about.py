@@ -11,16 +11,19 @@ db = BotDatabase()
 
 # Single about page
 ABOUT_PAGE = """
+<blockquote>
 ⍟───[ ᴍʏ ᴅᴇᴛᴀɪʟꜱ ]───⍟
 
 ‣ ᴍʏ ɴᴀᴍᴇ : <a href="https://t.me/{bot_username}">{BOT_NAME}</a> 🔍
 ‣ ᴍʏ ʙᴇsᴛ ғʀɪᴇɴᴅ : <a href="tg://settings">ᴛʜɪs ᴘᴇʀsᴏɴ</a>
-‣ ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href="https://t.me/{owner_username}">{BOT_NAME}</a>
+‣ ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href="https://t.me/{owner_username}">ᴅᴇᴠ</a>
 ‣ ʟɪʙʀᴀʀʏ : <a href="https://docs.pyrogram.org/">ᴘʏʀᴏɢʀᴀᴍ</a>
 ‣ ʟᴀɴɢᴜᴀɢᴇ : <a href="https://www.python.org/download/releases/3.0/">ᴘʏᴛʜᴏɴ 3</a>
 ‣ ᴅᴀᴛᴀ ʙᴀsᴇ : <a href="https://www.mongodb.com/">ᴍᴏɴɢᴏ ᴅʙ</a>
-‣ ʙᴏᴛ sᴇʀᴠᴇʀ : <a href="https://heroku.com/">ʜᴇʀᴏᴋᴜ</a>
+‣ ʙᴏᴛ sᴇʀᴠᴇʀ : <a href="https://render.com/">ʀᴇɴᴅᴇʀ</a>
 ‣ ʙᴜɪʟᴅ sᴛᴀᴛᴜs : <a href="#">ᴠ1.0 [sᴛᴀʙʟᴇ]</a>
+⍟────────────────────⍟
+</blockquote>
 """
 
 @Client.on_callback_query(filters.regex(r"about_page_1"))
@@ -91,4 +94,5 @@ async def about_close_callback(client: Client, callback_query):
         await callback_query.answer("💕 Chat closed, but I’m always here for you, love! 😘")
     except Exception as e:
         logger.error(f"Error closing about: {e}")
+
         await callback_query.answer("Something went wrong, sweetie. Try again? 💖", show_alert=True)
