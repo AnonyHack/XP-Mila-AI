@@ -18,6 +18,10 @@ ADMIN_IDS = [int(x) for x in getenv("ADMIN_IDS", "5962658076").split(",")]
 OWNER_USERNAME = getenv("OWNER_USERNAME", "@Am_Itachiuchiha")
 PORT = int(getenv("PORT", "10000"))
 
+# ───── OpenRouter API Configuration ───── #
+OPENROUTER_API_KEY = getenv("OPENROUTER_API_KEY", "")
+
+
 # ───── Mongo & Logging ───── #
 MONGO_DB_URI = getenv("MONGO_DB_URI", "")
 MONGO_DB_NAME = getenv("MONGO_DB_NAME", "MILAAI")
