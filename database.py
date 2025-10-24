@@ -1,5 +1,4 @@
 import logging
-import time
 from datetime import datetime, timedelta
 from typing import List, Optional
 from pymongo import MongoClient
@@ -14,6 +13,7 @@ class BotDatabase:
             self.db = self.client[MONGO_DB_NAME]
             self.users_collection = self.db["users"]
             self.conversations_collection = self.db["conversations"]
+            self.conversation_stats = self.db["conversation_stats"]  # New collection for persistent stats
             logger.info("MongoDB initialized")
         except Exception as e:
             logger.error(f"MongoDB error: {e}")
@@ -88,7 +88,6 @@ class BotDatabase:
 
     def get_active_users_7d(self) -> int:
         try:
-            # Users with conversations in the last 7 days
             seven_days_ago = datetime.now() - timedelta(days=7)
             pipeline = [
                 {"$match": {"timestamp": {"$gte": seven_days_ago}}},
@@ -103,7 +102,6 @@ class BotDatabase:
 
     def get_new_users_24h(self) -> int:
         try:
-            # Users joined in the last 24 hours
             one_day_ago = datetime.now() - timedelta(hours=24)
             return self.users_collection.count_documents({
                 "is_verified": True,
@@ -115,7 +113,6 @@ class BotDatabase:
 
     def get_conversation_counts(self) -> dict:
         try:
-            # Conversation counts for 24h, 7d, 30d
             now = datetime.now()
             one_day_ago = now - timedelta(hours=24)
             seven_days_ago = now - timedelta(days=7)
@@ -159,6 +156,7 @@ class BotDatabase:
 
     def add_conversation(self, user_id: int, role: str, content: str):
         try:
+            # Add to conversations_collection
             conversation_data = {
                 "user_id": user_id,
                 "role": role,
@@ -166,10 +164,56 @@ class BotDatabase:
                 "timestamp": datetime.now()
             }
             self.conversations_collection.insert_one(conversation_data)
+            
+            # Increment persistent conversation stats
+            self.conversation_stats.update_one(
+                {"key": "total_conversations"},
+                {
+                    "$inc": {
+                        "total": 1,
+                        "last_24h": 1,
+                        "last_7d": 1,
+                        "last_30d": 1
+                    },
+                    "$set": {"updated_at": datetime.now()}
+                },
+                upsert=True
+            )
             return True
         except Exception as e:
             logger.error(f"Error adding conversation: {e}")
             return False
+
+    def get_persistent_conversation_counts(self) -> dict:
+        try:
+            now = datetime.now()
+            one_day_ago = now - timedelta(hours=24)
+            seven_days_ago = now - timedelta(days=7)
+            thirty_days_ago = now - timedelta(days=30)
+            
+            # Reset expired counts
+            self.conversation_stats.update_one(
+                {"key": "total_conversations"},
+                {
+                    "$set": {
+                        "last_24h": 0 if self.conversation_stats.find_one({"key": "total_conversations", "updated_at": {"$lt": one_day_ago}}) else self.conversation_stats.find_one({"key": "total_conversations"})["last_24h"],
+                        "last_7d": 0 if self.conversation_stats.find_one({"key": "total_conversations", "updated_at": {"$lt": seven_days_ago}}) else self.conversation_stats.find_one({"key": "total_conversations"})["last_7d"],
+                        "last_30d": 0 if self.conversation_stats.find_one({"key": "total_conversations", "updated_at": {"$lt": thirty_days_ago}}) else self.conversation_stats.find_one({"key": "total_conversations"})["last_30d"],
+                    }
+                },
+                upsert=True
+            )
+            
+            stats = self.conversation_stats.find_one({"key": "total_conversations"})
+            return {
+                "total": stats.get("total", 0) if stats else 0,
+                "24h": stats.get("last_24h", 0) if stats else 0,
+                "7d": stats.get("last_7d", 0) if stats else 0,
+                "30d": stats.get("last_30d", 0) if stats else 0
+            }
+        except Exception as e:
+            logger.error(f"Error getting persistent conversation counts: {e}")
+            return {"total": 0, "24h": 0, "7d": 0, "30d": 0}
 
     def get_conversation_history(self, user_id: int, limit: int = 10) -> List[dict]:
         try:
