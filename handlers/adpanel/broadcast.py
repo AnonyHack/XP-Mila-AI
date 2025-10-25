@@ -3,82 +3,53 @@ from pyrogram.types import Message
 from pyrogram.errors import UserIsBlocked, PeerIdInvalid
 from database import BotDatabase
 from config import ADMIN_IDS
-from loguru import logger
+import logging
 import asyncio
 import datetime
 
+logger = logging.getLogger(__name__)
+
 db = BotDatabase()
 
-async def broadcast_messages(client: Client, user_id: int, message: Message) -> tuple[bool, str]:
-    """Send a broadcast message to a user and return status."""
-    try:
-        if message.media:
-            await message.copy(
-                chat_id=user_id,
-                caption=message.caption,
-                caption_entities=message.caption_entities,
-                parse_mode=enums.ParseMode.MARKDOWN
-            )
-        else:
-            await client.send_message(
-                chat_id=user_id,
-                text=message.text,
-                entities=message.entities,
-                parse_mode=enums.ParseMode.MARKDOWN
-            )
-        logger.debug(f"Successfully broadcasted to user {user_id}")
-        return True, "Success"
-    except UserIsBlocked:
-        logger.info(f"User {user_id} has blocked the bot")
-        return False, "Blocked"
-    except PeerIdInvalid:
-        logger.info(f"User {user_id} has deleted their account or is invalid")
-        return False, "Deleted"
-    except Exception as e:
-        logger.error(f"Failed to broadcast to user {user_id}: {e}")
-        return False, "Error"
-
-@Client.on_message(filters.command("broadcast") & filters.private & filters.user(ADMIN_IDS))
+@Client.on_message(filters.command("broadcast") & filters.private, group=0)
 async def broadcast_command(client: Client, message: Message):
-    """Handle the /broadcast command with message content."""
+    logger.debug(f"Processing /broadcast for user {message.from_user.id}")
     user_id = message.from_user.id
-    logger.debug(f"Processing /broadcast for user {user_id}")
-
-    # Extract message content (text or caption), removing /broadcast
-    msg_text = None
-    msg_entities = None
-    if message.text:
-        msg_text = message.text.replace("/broadcast", "", 1).strip()
-        msg_entities = message.entities
-    elif message.caption:
-        msg_text = message.caption.replace("/broadcast", "", 1).strip()
-        msg_entities = message.caption_entities
-
-    # Check if message is valid
-    if not msg_text and not message.media:
-        logger.warning(f"Invalid broadcast message from user {user_id}")
-        await message.reply_text(
-            "⚠️ Please include a valid message with /broadcast (e.g., /broadcast *hello* or attach media with a caption).",
-            parse_mode=enums.ParseMode.MARKDOWN
-        )
+    
+    # Check if user is an admin
+    if user_id not in ADMIN_IDS:
+        await message.reply_text("🚫 Sorry, only admins can use this command!")
+        logger.info(f"Unauthorized /broadcast attempt by user {user_id}")
         return
-
+    
+    # Prompt for broadcast message
+    b_msg = await client.ask(
+        chat_id=message.from_user.id,
+        text="📢 Now send me your broadcast message (supports formatting like *bold*, _italic_, etc.)."
+    )
+    
+    # Check if message is valid
+    if not b_msg.text and not b_msg.caption:
+        await message.reply_text("⚠️ Please send a valid message with text or media!")
+        return
+    
+    # Get message content and entities
+    msg_text = b_msg.text or b_msg.caption
+    msg_entities = b_msg.entities or b_msg.caption_entities
+    
     # Get all user IDs from database
     try:
-        logger.info(f"Fetching user IDs for broadcast by user {user_id}")
         user_ids = db.get_all_users()
         total_users = len(user_ids)
-        logger.info(f"Found {total_users} users for broadcast")
     except Exception as e:
-        logger.error(f"Error fetching users for broadcast by user {user_id}: {e}", exc_info=True)
+        logger.error(f"Error fetching users for broadcast: {e}")
         await message.reply_text("⚠️ Error fetching users from database. Please try again later.")
         return
-
+    
     if not user_ids:
-        logger.info(f"No users found for broadcast by user {user_id}")
         await message.reply_text("📭 No users found to broadcast to.")
         return
-
+    
     # Initialize counters
     sts = await message.reply_text("📢 Broadcasting your message...")
     start_time = datetime.datetime.now()
@@ -87,19 +58,39 @@ async def broadcast_command(client: Client, message: Message):
     blocked = 0
     deleted = 0
     failed = 0
-
+    
     # Send broadcast to each user
     for user_id in user_ids:
-        pti, sh = await broadcast_messages(client, user_id, message)
-        if pti:
+        try:
+            if b_msg.media:
+                # Handle media messages (photo, video, etc.) with caption
+                await b_msg.copy(
+                    chat_id=user_id,
+                    caption=msg_text,
+                    caption_entities=msg_entities,
+                    parse_mode=enums.ParseMode.MARKDOWN
+                )
+            else:
+                # Handle text messages
+                await client.send_message(
+                    chat_id=user_id,
+                    text=msg_text,
+                    entities=msg_entities,
+                    parse_mode=enums.ParseMode.MARKDOWN
+                )
             success += 1
-        elif sh == "Blocked":
+        except UserIsBlocked:
+            logger.debug(f"User {user_id} blocked the bot")
             blocked += 1
-        elif sh == "Deleted":
+        except PeerIdInvalid:
+            logger.debug(f"User {user_id} has deleted their account or is invalid")
             deleted += 1
-        elif sh == "Error":
+        except Exception as e:
+            logger.error(f"Failed to send broadcast to user {user_id}: {e}")
             failed += 1
         done += 1
+        
+        # Update progress every 20 users
         if done % 20 == 0:
             await sts.edit_text(
                 f"📢 Broadcast in progress:\n\n"
@@ -110,9 +101,8 @@ async def broadcast_command(client: Client, message: Message):
                 f"Deleted: {deleted}\n"
                 f"Failed: {failed}"
             )
-            logger.debug(f"Broadcast progress: {done}/{total_users} by user {user_id}")
         await asyncio.sleep(0.1)  # Avoid rate limits
-
+    
     # Final report
     time_taken = datetime.datetime.now() - start_time
     await sts.edit_text(
@@ -125,4 +115,4 @@ async def broadcast_command(client: Client, message: Message):
         f"Deleted: {deleted}\n"
         f"Failed: {failed}"
     )
-    logger.info(f"Broadcast completed for admin {user_id}: Success={success}, Blocked={blocked}, Deleted={deleted}, Failed={failed}")
+    logger.info(f"Broadcast completed for admin {user_id}: {success} succeeded, {blocked} blocked, {deleted} deleted, {failed} failed")
