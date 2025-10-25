@@ -29,7 +29,7 @@ async def chat_callback(client: Client, callback_query):
         reply_markup=build_main_menu()
     )
 
-@Client.on_message(filters.text & filters.private & ~filters.command(["start", "clear", "profile", "menu"]))
+@Client.on_message(filters.text & filters.private & ~filters.command(["start", "clear", "profile", "menu", "broadcast", "stats", "policy"]))
 async def chat_command(client: Client, message: Message):
     user_id = message.from_user.id
     first_name = message.from_user.first_name or "darling"
@@ -77,3 +77,4 @@ async def menu_command(client: Client, message: Message):
         f"💕 Hey {first_name}, here's our little love hub! 😘 Pick an option to continue our journey!",
         reply_markup=build_main_menu()
     )
+
