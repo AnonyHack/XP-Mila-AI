@@ -1,128 +1,348 @@
 from pyrogram import Client, filters, enums
-from pyrogram.types import Message
-from pyrogram.errors import UserIsBlocked, PeerIdInvalid
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.errors import (
+    UserIsBlocked, PeerIdInvalid, ChatWriteForbidden, 
+    ChannelPrivate, FloodWait, RPCError
+)
 from database import BotDatabase
 from config import ADMIN_IDS
 from loguru import logger
 import asyncio
-import datetime
+import time
+from datetime import datetime
 
-db = BotDatabase()
+# Broadcast states storage
+broadcast_states = {}
 
-async def broadcast_messages(client: Client, user_id: int, message: Message) -> tuple[bool, str]:
-    """Send a broadcast message to a user and return status."""
-    try:
-        if message.media:
-            await message.copy(
-                chat_id=user_id,
-                caption=message.caption,
-                caption_entities=message.caption_entities,
-                parse_mode=enums.ParseMode.MARKDOWN
-            )
-        else:
-            await client.send_message(
-                chat_id=user_id,
-                text=message.text,
-                entities=message.entities,
-                parse_mode=enums.ParseMode.MARKDOWN
-            )
-        logger.debug(f"Successfully broadcasted to user {user_id}")
-        return True, "Success"
-    except UserIsBlocked:
-        logger.info(f"User {user_id} has blocked the bot")
-        return False, "Blocked"
-    except PeerIdInvalid:
-        logger.info(f"User {user_id} has deleted their account or is invalid")
-        return False, "Deleted"
-    except Exception as e:
-        logger.error(f"Failed to broadcast to user {user_id}: {e}")
-        return False, "Error"
-
-@Client.on_message(filters.command("broadcast") & filters.private & filters.user(ADMIN_IDS))
+@Client.on_message(filters.command("broadcast") & filters.private)
 async def broadcast_command(client: Client, message: Message):
-    """Handle the /broadcast command with message content."""
+    logger.debug(f"Processing /broadcast for user {message.from_user.id}")
     user_id = message.from_user.id
-    logger.debug(f"Processing /broadcast for user {user_id}")
+    
+    # Check if user is an admin
+    if user_id not in ADMIN_IDS:
+        await message.reply_text("🚫 Sᴏʀʀʏ, ᴏɴʟʏ ᴀᴅᴍɪɴs ᴄᴀɴ ᴜsᴇ ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ!")
+        logger.info(f"Unauthorized /broadcast attempt by user {user_id}")
+        return
+    
+    # Check if there's a replied message
+    if message.reply_to_message:
+        # If replying to a message, use that as broadcast content
+        await process_broadcast_confirmation(client, message)
+    else:
+        # Show instructions to reply to a message
+        instruction_text = """
+<b>📢 Hᴏᴡ ᴛᴏ sᴇɴᴅ ᴀ ʙʀᴏᴀᴅᴄᴀsᴛ:</b>
 
-    # Extract message content (text or caption), removing /broadcast
-    msg_text = None
-    msg_entities = None
-    if message.text:
-        msg_text = message.text.replace("/broadcast", "", 1).strip()
-        msg_entities = message.entities
-    elif message.caption:
-        msg_text = message.caption.replace("/broadcast", "", 1).strip()
-        msg_entities = message.caption_entities
+1. <b>Cʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴍᴇssᴀɢᴇ</b> ғɪʀsᴛ (ᴛᴇxᴛ, ᴘʜᴏᴛᴏ, ᴠɪᴅᴇᴏ, ᴇᴛᴄ.)
+2. <b>Rᴇᴘʟʏ ᴛᴏ ᴛʜᴀᴛ ᴍᴇssᴀɢᴇ</b> ᴡɪᴛʜ /broadcast
+3. <b>Cᴏɴғɪʀᴍ</b> ᴛʜᴇ ʙʀᴏᴀᴅᴄᴀsᴛ ᴡʜᴇɴ ᴘʀᴏᴍᴘᴛᴇᴅ
 
-    # Check if message is valid
-    if not msg_text and not message.media:
-        logger.warning(f"Invalid broadcast message from user {user_id}")
+<blockquote>
+💡 <b>Tɪᴘ:</b> Yᴏᴜ ᴄᴀɴ ʙʀᴏᴀᴅᴄᴀsᴛ ᴀɴʏ ᴛʏᴘᴇ ᴏғ ᴍᴇssᴀɢᴇ - ᴛᴇxᴛ, ᴘʜᴏᴛᴏs, ᴠɪᴅᴇᴏs, ᴅᴏᴄᴜᴍᴇɴᴛs, ᴇᴛᴄ.
+</blockquote>
+
+<b>Cᴜʀʀᴇɴᴛ ᴍᴇᴛʜᴏᴅ:</b>
+↳ Cʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴍᴇssᴀɢᴇ ᴀɴᴅ ʀᴇᴘʟʏ ᴛᴏ ɪᴛ ᴡɪᴛʜ /broadcast
+"""
+        
         await message.reply_text(
-            "⚠️ Please include a valid message with /broadcast (e.g., /broadcast *hello* or attach media with a caption).",
-            parse_mode=enums.ParseMode.MARKDOWN
+            instruction_text,
+            parse_mode=enums.ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("☒ ᴄᴀɴᴄᴇʟ ☒", callback_data="cancel_broadcast")]
+            ])
         )
-        return
 
-    # Get all user IDs from database
+async def process_broadcast_confirmation(client: Client, message: Message):
+    """
+    Process broadcast confirmation when admin replies to a message with /broadcast
+    """
     try:
-        logger.info(f"Fetching user IDs for broadcast by user {user_id}")
-        user_ids = db.get_all_users()
-        total_users = len(user_ids)
-        logger.info(f"Found {total_users} users for broadcast")
+        user_id = message.from_user.id
+        
+        if not message.reply_to_message:
+            await message.reply_text("❌ Pʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴡɪᴛʜ /broadcast")
+            return
+        
+        # Get all users
+        db = BotDatabase()
+        users = db.get_all_users()
+        if not users:
+            await message.reply_text("❌ Nᴏ ᴜsᴇʀs ғᴏᴜɴᴅ ᴛᴏ ʙʀᴏᴀᴅᴄᴀsᴛ ᴛᴏ.")
+            return
+        
+        # Store broadcast data
+        broadcast_states[user_id] = {
+            "message": message.reply_to_message,
+            "users": users,
+            "start_time": time.time()
+        }
+        
+        # Show confirmation with message preview
+        confirmation_text = await get_message_preview(message.reply_to_message)
+        confirmation_text += f"\n\n<b>Tᴏᴛᴀʟ Rᴇᴄɪᴘɪᴇɴᴛs</b>: {len(users):,}\n\nAʀᴇ ʏᴏᴜ sᴜʀᴇ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ sᴇɴᴅ ᴛʜɪs ʙʀᴏᴀᴅᴄᴀsᴛ?"
+        
+        confirmation_keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("☑ ʏᴇꜱ, ꜱᴇɴᴅ ʙʀᴏᴀᴅᴄᴀꜱᴛ", callback_data="confirm_broadcast")],
+            [InlineKeyboardButton("☒ ᴄᴀɴᴄᴇʟ ☒", callback_data="cancel_broadcast")]
+        ])
+        
+        await message.reply_text(
+            confirmation_text,
+            parse_mode=enums.ParseMode.HTML,
+            reply_markup=confirmation_keyboard
+        )
+        
+        logger.info(f"📢 Broadcast confirmation sent to admin: {user_id}")
+        
     except Exception as e:
-        logger.error(f"Error fetching users for broadcast by user {user_id}: {e}", exc_info=True)
-        await message.reply_text("⚠️ Error fetching users from database. Please try again later.")
-        return
+        logger.error(f"❌ Error in process_broadcast_confirmation: {e}")
+        await message.reply_text("❌ Eʀʀᴏʀ ᴘʀᴏᴄᴇssɪɴɢ ʙʀᴏᴀᴅᴄᴀsᴛ. Pʟᴇᴀsᴇ ᴛʀʏ ᴀɢᴀɪɴ.")
 
-    if not user_ids:
-        logger.info(f"No users found for broadcast by user {user_id}")
-        await message.reply_text("📭 No users found to broadcast to.")
-        return
+@Client.on_callback_query(filters.regex("^confirm_broadcast$"))
+async def confirm_broadcast(client, callback_query):
+    """
+    Handle broadcast confirmation
+    """
+    try:
+        user_id = callback_query.from_user.id
+        
+        if user_id not in broadcast_states:
+            await callback_query.answer("❌ Nᴏ ʙʀᴏᴀᴅᴄᴀsᴛ ᴘᴇɴᴅɪɴɢ!", show_alert=True)
+            return
+        
+        broadcast_data = broadcast_states[user_id]
+        message = broadcast_data["message"]
+        users = broadcast_data["users"]
+        
+        await callback_query.answer("🚀 Sᴛᴀʀᴛɪɴɢ ʙʀᴏᴀᴅᴄᴀsᴛ...", show_alert=False)
+        
+        # Send initial progress message
+        progress_msg = await callback_query.message.reply_text(
+            "<b>📢 Bʀᴏᴀᴅᴄᴀsᴛ Iɴ Pʀᴏɢʀᴇss</b>\n\n"
+            f"<b>📊 Tᴏᴛᴀʟ Rᴇᴄɪᴘɪᴇɴᴛs</b>: {len(users):,}\n"
+            "<b>⏳ Sᴛᴀᴛᴜs: Pʀᴏᴄᴇssɪɴɢ...</b>\n\n"
+            "[░░░░░░░░░░] 0%",
+            parse_mode=enums.ParseMode.HTML
+        )
+        
+        # Start broadcasting
+        await send_broadcast(client, user_id, message, users, progress_msg)
+        
+    except Exception as e:
+        logger.error(f"❌ Error in confirm_broadcast: {e}")
+        await callback_query.answer("❌ Eʀʀᴏʀ sᴛᴀʀᴛɪɴɢ ʙʀᴏᴀᴅᴄᴀsᴛ!", show_alert=True)
 
-    # Initialize counters
-    sts = await message.reply_text("📢 Broadcasting your message...")
-    start_time = datetime.datetime.now()
-    done = 0
-    success = 0
-    blocked = 0
-    deleted = 0
-    failed = 0
+@Client.on_callback_query(filters.regex("^cancel_broadcast$"))
+async def cancel_broadcast(client, callback_query):
+    """
+    Handle broadcast cancellation
+    """
+    try:
+        user_id = callback_query.from_user.id
+        
+        if user_id in broadcast_states:
+            del broadcast_states[user_id]
+        
+        await callback_query.message.edit_text(
+            "❌ Bʀᴏᴀᴅᴄᴀsᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ.",
+            parse_mode=enums.ParseMode.HTML
+        )
+        await callback_query.answer("Bʀᴏᴀᴅᴄᴀsᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ!", show_alert=False)
+        logger.info(f"❌ Broadcast cancelled by admin: {user_id}")
+        
+    except Exception as e:
+        logger.error(f"❌ Error in cancel_broadcast: {e}")
+        await callback_query.answer("Eʀʀᴏʀ ᴄᴀɴᴄᴇʟʟɪɴɢ ʙʀᴏᴀᴅᴄᴀsᴛ!", show_alert=True)
 
-    # Send broadcast to each user
-    for user_id in user_ids:
-        pti, sh = await broadcast_messages(client, user_id, message)
-        if pti:
-            success += 1
-        elif sh == "Blocked":
-            blocked += 1
-        elif sh == "Deleted":
-            deleted += 1
-        elif sh == "Error":
-            failed += 1
-        done += 1
-        if done % 20 == 0:
-            await sts.edit_text(
-                f"📢 Broadcast in progress:\n\n"
-                f"Total Users: {total_users}\n"
-                f"Completed: {done} / {total_users}\n"
-                f"Success: {success}\n"
-                f"Blocked: {blocked}\n"
-                f"Deleted: {deleted}\n"
-                f"Failed: {failed}"
-            )
-            logger.debug(f"Broadcast progress: {done}/{total_users} by user {user_id}")
-        await asyncio.sleep(0.1)  # Avoid rate limits
+async def send_broadcast(client: Client, admin_id: int, message: Message, users: list, progress_msg: Message):
+    """
+    Send broadcast to all users with progress tracking
+    """
+    try:
+        success = 0
+        blocked = 0
+        deleted = 0
+        not_found = 0
+        bot_users = 0
+        failed = 0
+        
+        total_users = len(users)
+        start_time = broadcast_states[admin_id]["start_time"]
+        
+        # Calculate update interval
+        update_interval = max(1, total_users // 10)
+        
+        for index, user_id in enumerate(users):
+            try:
+                # Use copy_message to preserve ALL Telegram formatting exactly
+                await client.copy_message(
+                    chat_id=user_id,
+                    from_chat_id=message.chat.id,
+                    message_id=message.id
+                )
+                success += 1
+                
+            except UserIsBlocked:
+                blocked += 1
+            except PeerIdInvalid:
+                deleted += 1
+            except (ChatWriteForbidden, ChannelPrivate):
+                not_found += 1
+            except FloodWait as e:
+                logger.warning(f"Fʟᴏᴏᴅ ᴡᴀɪᴛ ғᴏʀ {user_id}: {e.value}s")
+                await asyncio.sleep(e.value)
+                failed += 1
+            except RPCError as e:
+                error_msg = str(e).lower()
+                if "bot" in error_msg and "send" in error_msg:
+                    bot_users += 1
+                else:
+                    failed += 1
+                logger.error(f"RPC Eʀʀᴏʀ ғᴏʀ {user_id}: {e}")
+            except Exception as e:
+                failed += 1
+                logger.error(f"Uɴᴇxᴘᴇᴄᴛᴇᴅ ᴇʀʀᴏʀ ғᴏʀ {user_id}: {e}")
+            
+            # Update progress periodically
+            if (index + 1) % update_interval == 0 or (index + 1) == total_users:
+                progress = int((index + 1) / total_users * 100)
+                progress_bar = '█' * (progress // 10) + '░' * (10 - progress // 10)
+                
+                progress_text = f"""<b>📨 Bʀᴏᴀᴅᴄᴀsᴛ Pʀᴏɢʀᴇss</b>
 
-    # Final report
-    time_taken = datetime.datetime.now() - start_time
-    await sts.edit_text(
-        f"📢 Broadcast Completed:\n"
-        f"Completed in {time_taken.total_seconds():.2f} seconds.\n\n"
-        f"Total Users: {total_users}\n"
-        f"Completed: {done} / {total_users}\n"
-        f"Success: {success}\n"
-        f"Blocked: {blocked}\n"
-        f"Deleted: {deleted}\n"
-        f"Failed: {failed}"
-    )
-    logger.info(f"Broadcast completed for admin {user_id}: Success={success}, Blocked={blocked}, Deleted={deleted}, Failed={failed}")
+📊 Tᴏᴛᴀʟ Rᴇᴄɪᴘɪᴇɴᴛs: {total_users:,}
+✅ Sᴜᴄᴄᴇssғᴜʟ: {success}
+🚫 Bʟᴏᴄᴋᴇᴅ: {blocked}
+🗑️ Dᴇʟᴇᴛᴇᴅ: {deleted}
+🔍 Nᴏᴛ Fᴏᴜɴᴅ: {not_found}
+🤖 Bᴏᴛ Usᴇʀs: {bot_users}
+❌ Fᴀɪʟᴇᴅ: {failed}
+⏳ Sᴛᴀᴛᴜs: Sᴇɴᴅɪɴɢ...
+
+[{progress_bar}] {progress}%</b>"""
+                
+                try:
+                    await progress_msg.edit_text(progress_text, parse_mode=enums.ParseMode.HTML)
+                except Exception as e:
+                    logger.error(f"Fᴀɪʟᴇᴅ ᴛᴏ ᴜᴘᴅᴀᴛᴇ ᴘʀᴏɢʀᴇss: {e}")
+            
+            # Rate limiting to avoid flooding
+            await asyncio.sleep(0.1)
+        
+        # Calculate time taken
+        elapsed_time = int(time.time() - start_time)
+        minutes = elapsed_time // 60
+        seconds = elapsed_time % 60
+        time_taken = f"{minutes}m {seconds}s" if minutes > 0 else f"{seconds}s"
+        
+        # Final completion message with close button
+        completion_text = f"""<b>📣 Bʀᴏᴀᴅᴄᴀsᴛ Cᴏᴍᴘʟᴇᴛᴇᴅ Sᴜᴄᴄᴇssғᴜʟʟʏ!</b>
+
+📊 Sᴛᴀᴛɪsᴛɪᴄs:
+├ 📤 Sᴇɴᴛ: {success}
+├ 🚫 Bʟᴏᴄᴋᴇᴅ: {blocked}
+├ 🗑️ Dᴇʟᴇᴛᴇᴅ: {deleted}
+├ 🔍 Nᴏᴛ Fᴏᴜɴᴅ: {not_found}
+├ 🤖 Bᴏᴛ Usᴇʀs: {bot_users}
+└ ❌ Fᴀɪʟᴇᴅ: {failed}
+
+⏱️ Tɪᴍᴇ ᴛᴀᴋᴇɴ: {time_taken}
+⏰ Fɪɴɪsʜᴇᴅ ᴀᴛ: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+✨ Tʜᴀɴᴋ ʏᴏᴜ ғᴏʀ ᴜsɪɴɢ ᴏᴜʀ ʙʀᴏᴀᴅᴄᴀsᴛ sʏsᴛᴇᴍ!</b>"""
+        
+        # Create close button for completion message
+        completion_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("⌧ Cʟᴏsᴇ ⌧", callback_data="close_broadcast_completion")]
+        ])
+        
+        # Clean up broadcast state
+        if admin_id in broadcast_states:
+            del broadcast_states[admin_id]
+        
+        await progress_msg.edit_text(
+            completion_text, 
+            parse_mode=enums.ParseMode.HTML,
+            reply_markup=completion_markup
+        )
+        logger.info(f"✅ Bʀᴏᴀᴅᴄᴀsᴛ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ʙʏ ᴀᴅᴍɪɴ: {admin_id}. Sᴜᴄᴄᴇss: {success}/{total_users}")
+        
+        # Auto-delete the success message after 3 minutes
+        await auto_delete_message(progress_msg, 180)  # 180 seconds = 3 minutes
+        
+    except Exception as e:
+        logger.error(f"❌ Eʀʀᴏʀ ɪɴ sᴇɴᴅ_ʙʀᴏᴀᴅᴄᴀsᴛ: {e}")
+        if admin_id in broadcast_states:
+            del broadcast_states[admin_id]
+        await progress_msg.edit_text("❌ Eʀʀᴏʀ ᴅᴜʀɪɴɢ ʙʀᴏᴀᴅᴄᴀsᴛ. Pʟᴇᴀsᴇ ᴄʜᴇᴄᴋ ʟᴏɢs.")
+
+@Client.on_callback_query(filters.regex("^close_broadcast_completion$"))
+async def close_broadcast_completion(client, callback_query):
+    """
+    Handle close button for broadcast completion message
+    """
+    try:
+        user_id = callback_query.from_user.id
+        
+        # Check if user is admin
+        if user_id not in ADMIN_IDS:
+            await callback_query.answer("❌ Yᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴀᴜᴛʜᴏʀɪᴢᴇᴅ!", show_alert=True)
+            return
+        
+        await callback_query.message.delete()
+        await callback_query.answer("Mᴇssᴀɢᴇ ᴄʟᴏsᴇᴅ!", show_alert=False)
+        logger.info(f"✅ Bʀᴏᴀᴅᴄᴀsᴛ ᴄᴏᴍᴘʟᴇᴛɪᴏɴ ᴍᴇssᴀɢᴇ ᴄʟᴏsᴇᴅ ʙʏ ᴀᴅᴍɪɴ: {user_id}")
+        
+    except Exception as e:
+        logger.error(f"❌ Eʀʀᴏʀ ɪɴ ᴄʟᴏsᴇ_ʙʀᴏᴀᴅᴄᴀsᴛ_ᴄᴏᴍᴘʟᴇᴛɪᴏɴ: {e}")
+        await callback_query.answer("Eʀʀᴏʀ ᴄʟᴏsɪɴɢ ᴍᴇssᴀɢᴇ!", show_alert=True)
+
+async def get_message_preview(message: Message):
+    """
+    Generate a preview of the message for confirmation
+    """
+    try:
+        preview = "<b>📋 Mᴇssᴀɢᴇ Pʀᴇᴠɪᴇᴡ:</b>\n\n"
+        
+        if message.text:
+            # Show first 200 characters of text
+            text_preview = message.text[:200] + "..." if len(message.text) > 200 else message.text
+            preview += f"📝 Tᴇxᴛ: {text_preview}\n"
+        
+        if message.photo:
+            preview += "🖼️ Mᴇᴅɪᴀ: Pʜᴏᴛᴏ\n"
+        elif message.video:
+            preview += "🎥 Mᴇᴅɪᴀ: Vɪᴅᴇᴏ\n"
+        elif message.document:
+            preview += "📄 Mᴇᴅɪᴀ: Dᴏᴄᴜᴍᴇɴᴛ\n"
+        elif message.audio:
+            preview += "🎵 Mᴇᴅɪᴀ: Aᴜᴅɪᴏ\n"
+        elif message.voice:
+            preview += "🎤 Mᴇᴅɪᴀ: Vᴏɪᴄᴇ Mᴇssᴀɢᴇ\n"
+        elif message.sticker:
+            preview += "😊 Mᴇᴅɪᴀ: Sᴛɪᴄᴋᴇʀ\n"
+        elif message.animation:
+            preview += "🎬 Mᴇᴅɪᴀ: GIF/Aɴɪᴍᴀᴛɪᴏɴ\n"
+        
+        if message.caption:
+            caption_preview = message.caption[:100] + "..." if len(message.caption) > 100 else message.caption
+            preview += f"📋 Cᴀᴘᴛɪᴏɴ: {caption_preview}\n"
+        
+        return preview
+        
+    except Exception as e:
+        logger.error(f"❌ Eʀʀᴏʀ ɢᴇɴᴇʀᴀᴛɪɴɢ ᴍᴇssᴀɢᴇ ᴘʀᴇᴠɪᴇᴡ: {e}")
+        return "<b>📋 Mᴇssᴀɢᴇ Pʀᴇᴠɪᴇᴡ:</b> [Uɴᴀʙʟᴇ ᴛᴏ ɢᴇɴᴇʀᴀᴛᴇ ᴘʀᴇᴠɪᴇᴡ]"
+
+async def auto_delete_message(message: Message, delay: int):
+    """
+    Auto-delete a message after specified delay in seconds
+    """
+    try:
+        await asyncio.sleep(delay)
+        await message.delete()
+        logger.info(f"✅ Auto-deleted broadcast completion message after {delay} seconds")
+    except Exception as e:
+        logger.error(f"❌ Error auto-deleting message: {e}")
