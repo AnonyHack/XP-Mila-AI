@@ -6,3 +6,4 @@ pymongo
 loguru
 Pillow
 aiohttp
+pytz
