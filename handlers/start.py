@@ -18,6 +18,9 @@ async def start_command(client: Client, message: Message):
     
     # Add user to database
     db.add_user(user_id, username, first_name, last_name)
+
+    # Update user's last activity - ADD THIS LINE
+    db.update_user_last_activity(user_id)
     
     # Check channel membership
     is_member = await is_user_member(client, user_id)
