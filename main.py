@@ -2,7 +2,9 @@ import logging
 import threading
 import asyncio
 import signal
+import time
 from pyrogram import Client
+from pyrogram.errors import FloodWait
 from config import API_ID, API_HASH, BOT_TOKEN
 from utils.keep_alive import start_keep_alive
 from utils.startup import send_restart_notification, cleanup_bot_state
@@ -21,7 +23,7 @@ app = Client(
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
-    plugins=dict(root="handlers")  # Load handlers from handlers/ and submodules
+    plugins=dict(root="XPTOOLS")  # Load handlers from handlers/ and submodules
 )
 
 async def main():
@@ -55,11 +57,21 @@ async def main():
         cleanup_bot_state()
         logger.info("✅ Bot shutdown complete")
 
+
 if __name__ == "__main__":
-    # Run the bot
-    try:
-        app.run(main())
-    except KeyboardInterrupt:
-        logger.info("Received interrupt signal, shutting down...")
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}")
+    # Run the bot with FloodWait handling
+    while True:
+        try:
+            app.run(main())
+        except FloodWait as e:
+            wait_time = int(e.value)
+            logger.warning(f"⚠️ FloodWait: Telegram requires a wait of {wait_time} seconds. Sleeping...")
+            time.sleep(wait_time)
+            logger.info("⏳ Wait over, restarting bot...")
+            continue
+        except KeyboardInterrupt:
+            logger.info("Received interrupt signal, shutting down...")
+            break
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            break
