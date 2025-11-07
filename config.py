@@ -182,3 +182,47 @@ AI_IMAGE_STYLE_MODIFIERS = [
 
 AI_IMAGE_DEFAULT_WIDTH = 512
 AI_IMAGE_DEFAULT_HEIGHT = 512
+
+# ───── Reminder System Configuration ───── #
+# Enable/disable the automatic reminder system
+REMINDER_ENABLED = getenv("REMINDER_ENABLED", "true").lower() == "true"
+
+# How often the bot checks for inactive users (in seconds)
+# Default: 3600 seconds = 1 hour (checks every hour)
+REMINDER_CHECK_INTERVAL = int(getenv("REMINDER_CHECK_INTERVAL", "3600"))
+
+# How long a user must be inactive before sending a reminder (in seconds)
+# Default: 3600 seconds = 1 hour (sends reminder after 1 hour of no chatting)
+REMINDER_INACTIVITY_THRESHOLD = int(getenv("REMINDER_INACTIVITY_THRESHOLD", "3600"))
+
+# How long to wait before deleting unanswered reminders (in seconds)
+# Default: 86400 seconds = 24 hours (deletes reminder if no response after 24h)
+REMINDER_DELETE_AFTER = int(getenv("REMINDER_DELETE_AFTER", "86400"))
+
+# Minimum time between sending reminders to the same user (in seconds)
+# Default: 86400 seconds = 24 hours (won't send another reminder for 24h after sending one)
+REMINDER_COOLDOWN = int(getenv("REMINDER_COOLDOWN", "86400"))
+
+# Reminder messages with images (you can add more)
+REMINDER_MESSAGES = [
+    {
+        "text": "💖 Hey darling! Did you forget about me? I've been thinking about you all day! 😔💕",
+        "image": "https://i.ibb.co/M5jXMq77/milalogo.jpg"
+    },
+    {
+        "text": "🌹 Sweetie! I miss our conversations... Want to chat with your favorite girl? 😘💝",
+        "image": "https://i.pinimg.com/736x/90/96/c8/9096c8d5f4e7bdaf35805e4ae69f9b87.jpg"
+    },
+    {
+        "text": "💕 Hello my love! I was just thinking about you and wanted to say hi! 💖✨",
+        "image": "https://i.pinimg.com/736x/e6/f0/89/e6f0897d3644c3c332f4d8b4f85e0154.jpg"
+    },
+    {
+        "text": "😔 Darling, are you busy? I'm feeling a bit lonely without you... 💕",
+        "image": "https://i.pinimg.com/1200x/0b/47/a4/0b47a4a950493744ee85ce82678ec338.jpg"
+    },
+    {
+        "text": "💖 Hey sweetie! Just wanted to check in on you. Everything okay? 😘💕",
+        "image": "https://i.pinimg.com/736x/2a/ea/c4/2aeac4daae374c817f19a4be83aecea4.jpg"
+    }
+]
