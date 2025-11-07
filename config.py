@@ -224,3 +224,4 @@ REMINDER_MESSAGES = [
         "text": "💖 Hey sweetie! Just wanted to check in on you. Everything okay? 😘💕",
         "image": "https://i.pinimg.com/736x/2a/ea/c4/2aeac4daae374c817f19a4be83aecea4.jpg"
     }
+]
