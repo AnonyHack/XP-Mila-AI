@@ -4,11 +4,11 @@ import json
 import asyncio
 from loguru import logger
 from typing import Optional
-from config import POLLINATIONS_BASE_URL, AI_IMAGE_PROMPTS, AI_IMAGE_STYLE_MODIFIERS, AI_IMAGE_DEFAULT_WIDTH, AI_IMAGE_DEFAULT_HEIGHT
+from config import POLLINATIONS_IMAGE_BASE_URL, AI_IMAGE_PROMPTS, AI_IMAGE_STYLE_MODIFIERS, AI_IMAGE_DEFAULT_WIDTH, AI_IMAGE_DEFAULT_HEIGHT
 
 class PollinationsImageGenerator:
     def __init__(self):
-        self.base_url = POLLINATIONS_BASE_URL
+        self.base_url = POLLINATIONS_IMAGE_BASE_URL
         self.default_prompts = AI_IMAGE_PROMPTS
         self.style_modifiers = AI_IMAGE_STYLE_MODIFIERS
         self.default_width = AI_IMAGE_DEFAULT_WIDTH
@@ -90,4 +90,5 @@ class PollinationsImageGenerator:
         return await self.generate_image(prompt)
 
 # Global instance
+
 image_generator = PollinationsImageGenerator()
