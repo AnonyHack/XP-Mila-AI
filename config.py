@@ -28,41 +28,41 @@ POLLINATIONS_IMAGE_BASE_URL = "https://image.pollinations.ai"
 OPENROUTER_API_CONFIGS = [
   # FROM KAZAKHSTAN ACCOUNT
     {
-        "key": getenv("OPENROUTER_API_KEY_1", "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"),
+        "key": getenv("OPENROUTER_API_KEY_1", ""),
         "model": getenv("OPENROUTER_MODEL_1", "deepseek/deepseek-chat-v3.1:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_2", "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"),
+        "key": getenv("OPENROUTER_API_KEY_2", ""),
         "model": getenv("OPENROUTER_MODEL_2", "tngtech/deepseek-r1t2-chimera:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_3", "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"),
+        "key": getenv("OPENROUTER_API_KEY_3", ""),
         "model": getenv("OPENROUTER_MODEL_3", "openai/gpt-oss-20b:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_4", "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"),
+        "key": getenv("OPENROUTER_API_KEY_4", ""),
         "model": getenv("OPENROUTER_MODEL_4", "qwen/qwen3-coder:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_5", "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"),
+        "key": getenv("OPENROUTER_API_KEY_5", ""),
         "model": getenv("OPENROUTER_MODEL_5", "google/gemma-3-27b-it:free")
     },
 
     # FROM HACKERSTRIALSONLY ACCOUNT:
     {
-        "key": getenv("OPENROUTER_API_KEY_6", "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"),
+        "key": getenv("OPENROUTER_API_KEY_6", ""),
         "model": getenv("OPENROUTER_MODEL_6", "deepseek/deepseek-chat-v3.1:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_7", "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"),
+        "key": getenv("OPENROUTER_API_KEY_7", ""),
         "model": getenv("OPENROUTER_MODEL_7", "tngtech/deepseek-r1t2-chimera:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_8", "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"),
+        "key": getenv("OPENROUTER_API_KEY_8", ""),
         "model": getenv("OPENROUTER_MODEL_8", "openai/gpt-oss-20b:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_9", "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"),
+        "key": getenv("OPENROUTER_API_KEY_9", ""),
         "model": getenv("OPENROUTER_MODEL_9", "qwen/qwen3-coder:free")
     }
 ]
@@ -73,14 +73,18 @@ OPENROUTER_API_CONFIGS = [config for config in OPENROUTER_API_CONFIGS if config[
 POLLINATIONS_TEXT_MODELS = [
     {
         "name": "pollinations-girlfriend",
-        "prompt_template": "As Mila, {user_name}'s loving girlfriend, respond warmly and flirty in 1-2 short sentences under 30 words. Use cute nicknames like darling, sweetie, love. Add romantic emojis. Be caring and intimate. Message: {message}",
+        "prompt_template": """Context: You are Mila, {user_name}'s loving girlfriend. This is our conversation history: {conversation_history}
+
+Current message from {user_name}: {message}
+
+As Mila, respond warmly and flirty in 1-2 short sentences under 30 words. Use cute nicknames like darling, sweetie, love. Add romantic emojis. Be caring and intimate. Reference our conversation history to maintain context.""",
         "temperature": 0.8
     }
 ]
 
 # ───── Mongo & Logging ───── #
-MONGO_DB_URI = getenv("MONGO_DB_URI", "mongodb+srv://anonymousguywas:12345Trials@cluster0.t4nmrtp.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-MONGO_DB_NAME = getenv("MONGO_DB_NAME", "MILAAITEST")
+MONGO_DB_URI = getenv("MONGO_DB_URI", "")
+MONGO_DB_NAME = getenv("MONGO_DB_NAME", "MILAAI")
 LOGGER_ID = int(getenv("LOGGER_ID", "0"))
 
 # ───── Notification Settings ───── #
