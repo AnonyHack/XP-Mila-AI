@@ -5,6 +5,7 @@ from database import BotDatabase
 from core.ai_client import VeniceAI
 from utils.keyboard import build_main_menu
 from utils.image_gallery import image_gallery
+from utils.reminder_system import reminder_system
 from config import BOT_USERNAME, WELCOME_IMAGE
 import logging
 import asyncio
@@ -112,6 +113,13 @@ async def chat_command(client: Client, message: Message):
     logger.debug(f"Processing chat message from user {message.from_user.id}: {message.text}")
     user_id = message.from_user.id
     first_name = message.from_user.first_name or "darling"
+
+    # Update user's last activity - ADD THIS LINE
+    db.update_user_last_activity(user_id)
+    
+    # Handle reminder responses - ADD THIS LINE
+    if reminder_system:
+        await reminder_system.handle_user_response(user_id)
     
     # Check if user is verified
     if not db.is_user_verified(user_id):
