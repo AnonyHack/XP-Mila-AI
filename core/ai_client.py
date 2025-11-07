@@ -68,16 +68,39 @@ class VeniceAI:
         logger.debug(f"📤 OpenRouter payload prepared for model: {current_config['model']}")
         return payload
 
-    def prepare_pollinations_payload(self, user_message: str, user_first_name: str = None):
-        """Prepare payload for Pollinations.ai text generation"""
+    def prepare_pollinations_payload(self, conversation_history: List[Dict], user_message: str, user_first_name: str = None):
+        """Prepare payload for Pollinations.ai text generation with conversation history"""
         model_config = random.choice(self.pollinations_models)
+        
+        # Format conversation history for context
+        history_text = self._format_conversation_history(conversation_history)
+        
         prompt = model_config["prompt_template"].format(
             user_name=user_first_name or 'darling',
+            conversation_history=history_text,
             message=user_message
         )
         
-        logger.debug(f"📤 Pollinations.ai prompt prepared: {prompt[:100]}...")
+        logger.debug(f"📤 Pollinations.ai prompt prepared with {len(conversation_history)} history messages")
         return prompt
+
+    def _format_conversation_history(self, conversation_history: List[Dict]) -> str:
+        """Format conversation history for Pollinations.ai context"""
+        if not conversation_history:
+            return "This is our first conversation. Be warm and welcoming."
+        
+        # Take only the last 2-3 exchanges to avoid prompt being too long
+        recent_history = conversation_history[-6:] if len(conversation_history) > 6 else conversation_history
+        
+        formatted_history = []
+        for msg in recent_history:
+            role = "You" if msg["role"] == "user" else "Mila"
+            content = msg["content"][:80]  # Limit content length
+            formatted_history.append(f"{role}: {content}")
+        
+        history_text = " | ".join(formatted_history)
+        logger.debug(f"📝 Formatted conversation history: {history_text[:100]}...")
+        return history_text
 
     def get_ai_response(self, conversation_history: List[Dict], user_message: str, user_first_name: str = None) -> str:
         """Get AI response with fallback between OpenRouter and Pollinations.ai"""
@@ -89,9 +112,9 @@ class VeniceAI:
             logger.success("✅ OpenRouter response successful")
             return openrouter_response
         
-        # If OpenRouter fails, try Pollinations.ai
+        # If OpenRouter fails, try Pollinations.ai WITH conversation history
         logger.warning("🔄 OpenRouter failed, trying Pollinations.ai...")
-        pollinations_response = self._try_pollinations(user_message, user_first_name)
+        pollinations_response = self._try_pollinations(conversation_history, user_message, user_first_name)
         if pollinations_response:
             logger.success("✅ Pollinations.ai response successful")
             return pollinations_response
@@ -186,11 +209,11 @@ class VeniceAI:
         logger.error(f"💥 All {len(self.api_configs)} OpenRouter configs failed")
         return None
 
-    def _try_pollinations(self, user_message: str, user_first_name: str = None) -> str:
-        """Try to get response from Pollinations.ai text generation with multiple URL formats"""
+    def _try_pollinations(self, conversation_history: List[Dict], user_message: str, user_first_name: str = None) -> str:
+        """Try to get response from Pollinations.ai text generation with conversation context"""
         try:
-            prompt = self.prepare_pollinations_payload(user_message, user_first_name)
-            logger.info("🔄 Attempting Pollinations.ai text generation")
+            prompt = self.prepare_pollinations_payload(conversation_history, user_message, user_first_name)
+            logger.info("🔄 Attempting Pollinations.ai text generation with conversation context")
             
             # Try different URL encoding formats
             url_formats = [
