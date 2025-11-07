@@ -23,7 +23,7 @@ app = Client(
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
-    plugins=dict(root="XPTOOLS")  # Load handlers from handlers/ and submodules
+    plugins=dict(root="handlers")  # Load handlers from handlers/ and submodules
 )
 
 async def main():
