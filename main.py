@@ -6,7 +6,6 @@ from pyrogram import Client
 from config import API_ID, API_HASH, BOT_TOKEN
 from utils.keep_alive import start_keep_alive
 from utils.startup import send_restart_notification, cleanup_bot_state
-from utils.reminder_system import initialize_reminder_system, shutdown_reminder_system
 
 # Setup logging
 logging.basicConfig(
@@ -38,10 +37,6 @@ async def main():
         # Send restart notification (automatically detects if it's a restart)
         await send_restart_notification(app)
         
-        # Initialize reminder system
-        await initialize_reminder_system(app)
-        logger.info("⏰ Reminder system initialized")
-        
         # Keep the bot running
         await asyncio.Event().wait()
         
@@ -51,7 +46,6 @@ async def main():
     finally:
         # Cleanup when bot stops
         logger.info("🛑 Bot is shutting down...")
-        await shutdown_reminder_system()
         cleanup_bot_state()
         logger.info("✅ Bot shutdown complete")
 
