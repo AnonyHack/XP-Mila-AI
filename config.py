@@ -19,55 +19,68 @@ OWNER_USERNAME = getenv("OWNER_USERNAME", "@Am_Itachiuchiha")
 PORT = int(getenv("PORT", "10000"))
 RENDER_APP_NAME = getenv("RENDER_APP_NAME", None)
 
+# ───── API Base URLs ───── #
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
+POLLINATIONS_TEXT_BASE_URL = "https://text.pollinations.ai"
+POLLINATIONS_IMAGE_BASE_URL = "https://image.pollinations.ai"
+
 # ───── OpenRouter API Configuration ───── #
 OPENROUTER_API_CONFIGS = [
-    # FROM KAZAKHSTAN ACCOUNT
+  # FROM KAZAKHSTAN ACCOUNT
     {
-        "key": getenv("OPENROUTER_API_KEY_1", ""),
-        "model": getenv("OPENROUTER_MODEL_1", "")
+        "key": getenv("OPENROUTER_API_KEY_1", "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"),
+        "model": getenv("OPENROUTER_MODEL_1", "deepseek/deepseek-chat-v3.1:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_2", ""),
-        "model": getenv("OPENROUTER_MODEL_2", "")
+        "key": getenv("OPENROUTER_API_KEY_2", "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"),
+        "model": getenv("OPENROUTER_MODEL_2", "tngtech/deepseek-r1t2-chimera:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_3", ""),
-        "model": getenv("OPENROUTER_MODEL_3", "")
+        "key": getenv("OPENROUTER_API_KEY_3", "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"),
+        "model": getenv("OPENROUTER_MODEL_3", "openai/gpt-oss-20b:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_4", ""),
-        "model": getenv("OPENROUTER_MODEL_4", "")
+        "key": getenv("OPENROUTER_API_KEY_4", "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"),
+        "model": getenv("OPENROUTER_MODEL_4", "qwen/qwen3-coder:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_5", ""),
-        "model": getenv("OPENROUTER_MODEL_5", "")
+        "key": getenv("OPENROUTER_API_KEY_5", "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"),
+        "model": getenv("OPENROUTER_MODEL_5", "google/gemma-3-27b-it:free")
     },
 
-    # FROM HACKERSTRIALSONLY ACCOUNT
+    # FROM HACKERSTRIALSONLY ACCOUNT:
     {
-        "key": getenv("OPENROUTER_API_KEY_6", ""),
-        "model": getenv("OPENROUTER_MODEL_6", "")
+        "key": getenv("OPENROUTER_API_KEY_6", "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"),
+        "model": getenv("OPENROUTER_MODEL_6", "deepseek/deepseek-chat-v3.1:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_7", ""),
-        "model": getenv("OPENROUTER_MODEL_7", "")
+        "key": getenv("OPENROUTER_API_KEY_7", "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"),
+        "model": getenv("OPENROUTER_MODEL_7", "tngtech/deepseek-r1t2-chimera:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_8", ""),
-        "model": getenv("OPENROUTER_MODEL_8", "")
+        "key": getenv("OPENROUTER_API_KEY_8", "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"),
+        "model": getenv("OPENROUTER_MODEL_8", "openai/gpt-oss-20b:free")
     },
     {
-        "key": getenv("OPENROUTER_API_KEY_9", ""),
-        "model": getenv("OPENROUTER_MODEL_9", "")
+        "key": getenv("OPENROUTER_API_KEY_9", "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"),
+        "model": getenv("OPENROUTER_MODEL_9", "qwen/qwen3-coder:free")
     }
-
 ]
 # Filter out configs with empty keys
 OPENROUTER_API_CONFIGS = [config for config in OPENROUTER_API_CONFIGS if config["key"]]
 
+# ───── Pollinations.ai Text Generation Configuration ───── #
+POLLINATIONS_TEXT_MODELS = [
+    {
+        "name": "pollinations-girlfriend",
+        "prompt_template": "As Mila, {user_name}'s loving girlfriend, respond warmly and flirty in 1-2 short sentences under 30 words. Use cute nicknames like darling, sweetie, love. Add romantic emojis. Be caring and intimate. Message: {message}",
+        "temperature": 0.8
+    }
+]
+
 # ───── Mongo & Logging ───── #
-MONGO_DB_URI = getenv("MONGO_DB_URI", "")
-MONGO_DB_NAME = getenv("MONGO_DB_NAME", "MILAAI")
+MONGO_DB_URI = getenv("MONGO_DB_URI", "mongodb+srv://anonymousguywas:12345Trials@cluster0.t4nmrtp.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+MONGO_DB_NAME = getenv("MONGO_DB_NAME", "MILAAITEST")
 LOGGER_ID = int(getenv("LOGGER_ID", "0"))
 
 # ───── Notification Settings ───── #
@@ -77,17 +90,15 @@ SUPPORT_GROUP_URL = getenv("SUPPORT_GROUP_URL", "https://t.me/Free_Vpn_Chats")  
 # ───── Channel Configurations ───── #
 REQUIRED_CHANNELS = [
     {
-        "name": "✪ XP TOOLS ✪",
+        "name": "XP TOOLS",
         "url": os.getenv("CHANNEL_LINK_1", "https://t.me/XPTOOLSTEAM"),
         "chat_id": "@XPTOOLSTEAM" 
     },
-        {
-        "name": "≛ PROMOTER ≛",
+    {
+        "name": "PROMOTER",
         "url": os.getenv("CHANNEL_LINK_1", "https://t.me/FREENETHUBZ"),
         "chat_id": "@FREENETHUBZ" 
     },
-    # Add more channels if needed, e.g.:
-    # {"name": "Channel 2", "url": os.getenv("CHANNEL_LINK_2", ""), "chat_id": ""}
 ]
 
 # ───── Bot Settings ───── #
@@ -122,13 +133,11 @@ STATIC_IMAGES = {
 }
 
 DEFAULT_IMAGES = [
-    "https://i.ibb.co/M5jXMq77/milalogo.jpg",  # Your bot's logo
+    "https://i.ibb.co/M5jXMq77/milalogo.jpg",
     "https://i.ibb.co/5XZ8FSW1/defpic1.png",
 ]
 
 # ───── AI Image Generation Configuration ───── #
-POLLINATIONS_BASE_URL = "https://image.pollinations.ai"
-
 AI_IMAGE_PROMPTS = {
     "cute": [
         "beautiful woman in white bikini on tropical beach, golden hour lighting, soft waves, palm trees, photorealistic, high detail, natural beauty, summer vibes, solo",
@@ -184,26 +193,12 @@ AI_IMAGE_DEFAULT_WIDTH = 512
 AI_IMAGE_DEFAULT_HEIGHT = 512
 
 # ───── Reminder System Configuration ───── #
-# Enable/disable the automatic reminder system
 REMINDER_ENABLED = getenv("REMINDER_ENABLED", "true").lower() == "true"
-
-# How often the bot checks for inactive users (in seconds)
-# Default: 3600 seconds = 1 hour (checks every hour)
 REMINDER_CHECK_INTERVAL = int(getenv("REMINDER_CHECK_INTERVAL", "3600"))
-
-# How long a user must be inactive before sending a reminder (in seconds)
-# Default: 3600 seconds = 1 hour (sends reminder after 1 hour of no chatting)
 REMINDER_INACTIVITY_THRESHOLD = int(getenv("REMINDER_INACTIVITY_THRESHOLD", "3600"))
-
-# How long to wait before deleting unanswered reminders (in seconds)
-# Default: 86400 seconds = 24 hours (deletes reminder if no response after 24h)
 REMINDER_DELETE_AFTER = int(getenv("REMINDER_DELETE_AFTER", "86400"))
-
-# Minimum time between sending reminders to the same user (in seconds)
-# Default: 86400 seconds = 24 hours (won't send another reminder for 24h after sending one)
 REMINDER_COOLDOWN = int(getenv("REMINDER_COOLDOWN", "86400"))
 
-# Reminder messages with images (you can add more)
 REMINDER_MESSAGES = [
     {
         "text": "💖 Hey darling! Did you forget about me? I've been thinking about you all day! 😔💕",
@@ -225,4 +220,3 @@ REMINDER_MESSAGES = [
         "text": "💖 Hey sweetie! Just wanted to check in on you. Everything okay? 😘💕",
         "image": "https://i.pinimg.com/736x/2a/ea/c4/2aeac4daae374c817f19a4be83aecea4.jpg"
     }
-]
