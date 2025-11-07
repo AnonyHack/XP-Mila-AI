@@ -3,7 +3,7 @@ from pyrogram.types import Message, InputMediaPhoto
 from database import BotDatabase
 from utils.keyboard import build_main_menu
 from config import WELCOME_MESSAGE, WELCOME_IMAGE
-from XPTOOLS.force_join import ask_user_to_join, is_user_member
+from handlers.force_join import ask_user_to_join, is_user_member
 from utils.imagen import send_notification
 from loguru import logger
 
@@ -86,3 +86,4 @@ async def start_callback(client: Client, callback_query):
         await send_notification(client, user_id, display_username, "Restarted Bot")
     except Exception as e:
         logger.error(f"📢 Notification failed: {e}")
+
