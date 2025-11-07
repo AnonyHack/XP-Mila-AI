@@ -10,7 +10,7 @@ API_ID = int(getenv("API_ID", ""))
 API_HASH = getenv("API_HASH", "")
 BOT_TOKEN = getenv("BOT_TOKEN", "")
 BOT_NAME = getenv("BOT_NAME", "Mila | AI Girlfriend (+18)")
-BOT_USERNAME = getenv("BOT_USERNAME", "@Milagirlfriendbot")
+BOT_USERNAME = getenv("BOT_USERNAME", "Milagirlfriendbot")
 OWNER_ID = int(getenv("OWNER_ID", "5962658076"))
 ADMINS = [int(admin_id) for admin_id in getenv("ADMINS", str(OWNER_ID)).split(",")]
 # Example additional admin IDs as a default; allow override via ADMIN_IDS env var (comma-separated)
